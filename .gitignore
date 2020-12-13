@@ -1,0 +1,5 @@
+data/*
+data_processing/__pycache__/
+learning/__pycache__/
+__pycache__
+.idea

@@ -1,0 +1,26 @@
+data_dir: '/Volumes/sel_external/ieee_grss_contest/data/'
+
+apply_enh_lee_filter: False
+
+INPUT_HEIGHT: 800
+INPUT_WIDTH: 800
+INPUT_CHANNELS: 98
+
+OUTPUT_HEIGHT: 16
+OUTPUT_WIDTH: 16
+OUTPUT_CHANNELS: 1
+
+BUFFER_SIZE: 1
+BATCH_SIZE: 1
+
+EPOCHS: 10
+
+LOAD_EXISTING: False
+
+CHECKPOINT_DIR: '/Volumes/sel_external/ieee_grss_contest/models/training_checkpoints'
+LOG_DIR: '/Volumes/sel_external/ieee_grss_contest/models/logs'
+
+TRAIN_PATH: '/Volumes/sel_external/ieee_grss_contest/data/tfrecords/train/train_tiles_2.tfrecords'
+VAL_PATH: '/Volumes/sel_external/ieee_grss_contest/data/tfrecords/val/'
+
+TRAIN: True
