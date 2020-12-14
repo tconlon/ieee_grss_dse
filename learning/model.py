@@ -37,8 +37,11 @@ def Discriminator(args):
     down1 = downsample(64, 4, False)(inp)  # (bs, 128, 128, 64)
     down2 = downsample(128, 4)(down1)  # (bs, 64, 64, 128)
     down3 = downsample(256, 4)(down2)  # (bs, 32, 32, 256)
+    down4 = downsample(256, 4)(down3)  # (bs, 32, 32, 256)
+    down5 = downsample(256, 4)(down4)  # (bs, 32, 32, 256)
 
-    zero_pad1 = tf.keras.layers.ZeroPadding2D()(down3)  # (bs, 34, 34, 256)
+    zero_pad1 = tf.keras.layers.ZeroPadding2D()(down5)  # (bs, 34, 34, 256)
+
     conv = tf.keras.layers.Conv2D(
         512, 4, strides=1, kernel_initializer=initializer, use_bias=False
     )(
@@ -51,7 +54,7 @@ def Discriminator(args):
 
     zero_pad2 = tf.keras.layers.ZeroPadding2D()(leaky_relu)  # (bs, 33, 33, 512)
 
-    last = tf.keras.layers.Conv2D(1, 4, strides=1, kernel_initializer=initializer)(
+    last = tf.keras.layers.Conv2D(4, 5, strides=1, kernel_initializer=initializer)(
         zero_pad2
     )  # (bs, 30, 30, 1)
 
