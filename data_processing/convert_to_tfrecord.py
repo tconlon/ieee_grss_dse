@@ -8,6 +8,7 @@ from shapely.geometry import shape
 from typing import Sequence
 from PIL import Image
 from tqdm import tqdm
+import tqdm.notebook as tq
 from data_processing.load_raw_images_by_type import *
 import findpeaks
 import matplotlib.pyplot as plt
@@ -253,14 +254,23 @@ def make_tfrecord_dataset(args, tiles, config='train'):
     as possible. Therefore, the user should do most of the image processing before saving the .tfrecord,
      then load in the .tfrecord and train on it as-is.
 
-    TO DO: write cropping function so that input data isn't of shape (98, 800, 800)
+    Before windowing the images:
+    input stacks are of size (800, 800, bands)
+    target stacks are of size (16, 16, bands)
+
+    After windowing:
+    input stacks are of size (200, 200, bands)
+    target stacks are of size (200, 200, bands)
 
     :return: Nothing; saves output .tfrecord
     '''
 
-    out_file = f"{args.data_dir}/tfrecords/{config}/{config}_tiles_{len(tiles)}.tfrecords"
+
+    window_mult = 49
+    out_file = f"{args.data_dir}/tfrecords/{config}/{config}_nimgs_{len(tiles)*window_mult}.tfrecords"
 
     writer = tf.io.TFRecordWriter(out_file)
+
 
     for i, tile in tqdm(enumerate(tiles)):
         print(f'Uploading {tile} to tfrecord')
@@ -284,15 +294,21 @@ def make_tfrecord_dataset(args, tiles, config='train'):
         input_stack = np.transpose(input_stack, (1, 2, 0))
         gt_array = np.transpose(gt_array, (1, 2, 0))
 
+        ## Take windowed arrays of both input stack and groundtruth
+        input_stack = windowed_image_reading(input_stack)
+        gt_array = windowed_image_reading(gt_array)
+
         if i == 0:
             print(f'Shape of input stack {input_stack.shape}')
             print(f'Shape of input stack {gt_array.shape}')
 
-        example = convert_to_example(
-            input_stack, gt_array, input_stack.shape, gt_array.shape
-        )
+        # Write each window to the tfrecord
+        for ix in tqdm(range(input_stack.shape[0]), position=0, leave=True):
+            example = convert_to_example(
+                input_stack[ix], gt_array[ix], input_stack[ix].shape, gt_array[ix].shape
+            )
 
-        writer.write(example.SerializeToString())
+            writer.write(example.SerializeToString())
 
 
 if __name__ == '__main__':
@@ -305,7 +321,7 @@ if __name__ == '__main__':
         "image/width": tf.io.FixedLenFeature([], tf.int64),
         "image/channels": tf.io.FixedLenFeature([], tf.int64),
         "target/target_data": tf.io.FixedLenSequenceFeature(
-            [], dtype=tf.float32, allow_missing=True
+            [], dtype=tf.uint8, allow_missing=True
         ),
         "target/height": tf.io.FixedLenFeature([], tf.int64),
         "target/width": tf.io.FixedLenFeature([], tf.int64),
@@ -313,7 +329,7 @@ if __name__ == '__main__':
     }
 
     args = get_args()
-    tiles = load_tile_names(args, config='train')[2:3]
+    tiles = load_tile_names(args, config='train')[0:1]
 
     make_tfrecord_dataset(args, tiles, config='train')
 

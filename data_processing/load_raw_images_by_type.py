@@ -85,7 +85,7 @@ def load_groundtruth(args, tile, config='train'):
     gt_file = f'{args.data_dir}/raw/{config}/{tile}/groundTruth.tif'
     gt_image = rasterio.open(gt_file, 'r').read()
 
-    return gt_image
+    return gt_image.astype(np.uint8)
 
 
 if __name__ == '__main__':

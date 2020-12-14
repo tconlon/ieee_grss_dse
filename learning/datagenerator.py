@@ -69,9 +69,11 @@ def use_select_input_bands(input_image, target_image):
 
 def type_transform(input_image, target_image):
     '''
-    Ensuring the images are of type float 32
+    Ensuring the input images are of type float 32
+    and the target images are of type uint 8
     '''
 
-    input_image, target_image = tf.cast(input_image, tf.float32), tf.cast(target_image, tf.float32)
+    input_image  = tf.cast(input_image, tf.float32)
+    target_image = tf.cast(target_image, tf.uint8)
 
     return input_image, target_image
