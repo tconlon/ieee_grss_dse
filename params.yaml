@@ -1,4 +1,4 @@
-data_dir: '/Volumes/sel_external/ieee_grss_contest/data/'
+data_dir: '../../data'
 
 apply_enh_lee_filter: False
 
@@ -13,15 +13,15 @@ OUTPUT_CHANNELS: 1
 BUFFER_SIZE: 1
 BATCH_SIZE: 1
 
-EPOCHS: 1
+EPOCHS: 10
 
 LOAD_EXISTING: False
 LOG: False
 
-CHECKPOINT_DIR: '/Volumes/sel_external/ieee_grss_contest/models/training_checkpoints'
-LOG_DIR: '/Volumes/sel_external/ieee_grss_contest/models/logs'
+CHECKPOINT_DIR: '../../models/training_checkpoints'
+LOG_DIR: '../../models/logs'
 
-TRAIN_PATH: '/Volumes/sel_external/ieee_grss_contest/data/tfrecords/train/train_nimgs_98.tfrecords'
-VAL_PATH: '/Volumes/sel_external/ieee_grss_contest/data/tfrecords/val/val_nimgs_49.tfrecords'
+TRAIN_PATH: '../../data/tfrecords/train/train_nimgs_98.tfrecords'
+VAL_PATH: '../../data/tfrecords/val/val_nimgs_49.tfrecords'
 
 TRAIN: True

@@ -9,10 +9,10 @@ from typing import Sequence
 from PIL import Image
 from tqdm import tqdm
 import tqdm.notebook as tq
-from data_processing.load_raw_images_by_type import *
+from load_raw_images_by_type import *
 import findpeaks
 import matplotlib.pyplot as plt
-from data_processing.data_processing_utils import *
+from data_processing_utils import *
 
 def _int64_feature(value):
     """Wrapper for inserting int64 features into Example proto."""
@@ -270,7 +270,7 @@ def make_tfrecord_dataset(args, tiles, config='train'):
     out_file = f"{args.data_dir}/tfrecords/{config}/{config}_nimgs_{len(tiles)*window_mult}.tfrecords"
 
     writer = tf.io.TFRecordWriter(out_file)
-
+    print(tiles)
 
     for i, tile in tqdm(enumerate(tiles)):
         print(f'Uploading {tile} to tfrecord')
@@ -329,8 +329,8 @@ if __name__ == '__main__':
     }
 
     args = get_args()
-    tiles = load_tile_names(args, config='train')[0:1]
+    tiles = sorted(load_tile_names(args, config='val'))[0:1]
 
-    make_tfrecord_dataset(args, tiles, config='train')
+    make_tfrecord_dataset(args, tiles, config='val')
 
 

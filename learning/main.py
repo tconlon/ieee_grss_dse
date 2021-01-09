@@ -1,9 +1,9 @@
 import tensorflow as tf
 import rasterio
 import numpy as np
-from data_processing.data_processing_utils import get_args
-from learning.model import Discriminator
-from learning.datagenerator import type_transform, use_select_input_bands, parse_example
+from ieee_grss_dse.data_processing.data_processing_utils import get_args
+from model import Discriminator
+from datagenerator import type_transform, use_select_input_bands, parse_example
 import datetime
 import time
 from IPython import display
