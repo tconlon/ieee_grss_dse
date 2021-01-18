@@ -2,8 +2,9 @@ import tensorflow as tf
 import rasterio
 import numpy as np
 from data_processing.data_processing_utils import get_args
-from learning.model import Discriminator
-from learning.datagenerator import type_transform, use_select_input_bands, parse_example
+from learning.model import s2_convlstm_network, xception_model
+from learning.datagenerator import (type_transform, use_select_input_bands, parse_example, list_imagery_by_ts,
+                                    one_hot_encoding_target)
 import datetime
 import time
 from IPython import display
@@ -12,13 +13,16 @@ from tqdm import tqdm
 def prepare_datasets():
     train_funcs = [
         type_transform,
-        use_select_input_bands,
+        # use_select_input_bands,
+        list_imagery_by_ts,
+
     ]
 
     # Similarly, define the functions that should be mapped onto the validation tf.data.Dataset
     val_funcs = [
         type_transform,
-        use_select_input_bands,
+        # use_select_input_bands,
+        list_imagery_by_ts,
     ]
 
     ## NEED TO DEFINE NORMALIZATION FUNCTIONS HERE TOO
@@ -29,7 +33,6 @@ def prepare_datasets():
         parse_example, num_parallel_calls=tf.data.experimental.AUTOTUNE
     )
 
-    print(train_dataset)
     # Map functions onto training dataset, then shuffle and batch.
     for func in train_funcs:
         train_dataset = train_dataset.map(
@@ -64,7 +67,7 @@ if __name__ == '__main__':
     args = get_args()
 
     # Get discriminator model, define loss + optimizers
-    discriminator = Discriminator(args)
+    discriminator = xception_model(args)
     disc_loss_object = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
     disc_metrics = [tf.keras.metrics.SparseCategoricalAccuracy()]
 
@@ -103,6 +106,10 @@ if __name__ == '__main__':
     # These are imported from learning/datagenerator.py
 
     train_dataset, val_dataset = prepare_datasets()
+
+    # for ix, (im, tar) in train_dataset.enumerate():
+    #     print(tar)
+    #     break
 
     if args.TRAIN:
         discriminator.fit(train_dataset, epochs=args.EPOCHS, validation_data=val_dataset)
