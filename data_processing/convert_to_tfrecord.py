@@ -6,11 +6,14 @@ import datetime
 import glob
 from shapely.geometry import shape
 from typing import Sequence
-from PIL import Image
 from tqdm import tqdm
 import tqdm.notebook as tq
+<<<<<<< HEAD
 from load_raw_images_by_type import *
 import findpeaks
+=======
+from data_processing.load_raw_images_by_type import *
+>>>>>>> e172435f9d8d9ad7aa2039c21f57097660ccbe5a
 import matplotlib.pyplot as plt
 from data_processing_utils import *
 
@@ -275,19 +278,21 @@ def make_tfrecord_dataset(args, tiles, config='train'):
     for i, tile in tqdm(enumerate(tiles)):
         print(f'Uploading {tile} to tfrecord')
 
-        sar_array = load_sar_images(args, tile)
+        # sar_array = load_sar_images(args, tile)
         s2_array = load_s2_images(args, tile)
-        l8_array = load_l8_images(args, tile)
-        dnb_array = load_dnb_images(args, tile)
+        # l8_array = load_l8_images(args, tile)
+        # dnb_array = load_dnb_images(args, tile)
 
         gt_array = load_groundtruth(args, tile)
 
         ## ADD CROPPING FUNCTION HERE
 
-        input_stack = np.concatenate((sar_array,
+        input_stack = np.concatenate((
+                                      # sar_array,
                                       s2_array,
-                                      l8_array,
-                                      dnb_array),
+                                      # l8_array,
+                                      # dnb_array
+                                     ),
                                      axis=0).astype(np.float32)
 
         ## Convert to bands last
@@ -329,7 +334,7 @@ if __name__ == '__main__':
     }
 
     args = get_args()
-    tiles = sorted(load_tile_names(args, config='val'))[0:1]
+    tiles = load_tile_names(args, config='val')[0:1]
 
     make_tfrecord_dataset(args, tiles, config='val')
 
