@@ -8,14 +8,11 @@ from shapely.geometry import shape
 from typing import Sequence
 from tqdm import tqdm
 import tqdm.notebook as tq
-<<<<<<< HEAD
-from load_raw_images_by_type import *
 import findpeaks
-=======
-from data_processing.load_raw_images_by_type import *
->>>>>>> e172435f9d8d9ad7aa2039c21f57097660ccbe5a
+from ieee_grss_dse.data_processing.load_raw_images_by_type import *
 import matplotlib.pyplot as plt
-from data_processing_utils import *
+from ieee_grss_dse.data_processing.data_processing_utils import *
+
 
 def _int64_feature(value):
     """Wrapper for inserting int64 features into Example proto."""

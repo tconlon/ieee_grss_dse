@@ -87,9 +87,29 @@ def list_imagery_by_ts(input_image, target_image):
 
     return imagery_list_by_ts, target_image
 
+
 def one_hot_encoding_target(input_image, target_image):
 
     target_image = tf.one_hot(target_image, depth=4, axis=-1)
     target_image = tf.squeeze(target_image, axis=-2)
+
+    return input_image, target_image
+
+
+def apply_band_normalization(args, input_image, target_image):
+    '''
+    Apply the band normalization so that mean = 0, std = 1 for all bands in
+    input images. Adjust class ranges on target image
+    '''
+
+    # Save band normalization mean + std
+    input_mean = tf.constant(args.INPUT_BANDS_MEAN, dtype=tf.float32)
+    input_std = tf.constant(args.INPUT_BANDS_STD, dtype=tf.float32)
+
+    # Normalize input band
+    input_image = tf.divide((input_image - input_mean), input_std)
+
+    # Adjust target image classes
+    target_image = target_image - 1
 
     return input_image, target_image

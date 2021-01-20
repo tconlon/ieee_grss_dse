@@ -1,5 +1,5 @@
 import tensorflow as tf
-from learning.xception import xception_top
+from ieee_grss_dse.learning.xception import xception_top
 
 
 def last_layer(filters, size, strides, padding):
@@ -182,8 +182,6 @@ def s2_convlstm_network(args):
     # Input concatenated layer to LSTM + channel-reducing layers
     model_output = conv2dlstm_layer_avg_and_reduce(concat_layer, filters=256, size=3)
 
-    print(model_output)
-
     return tf.keras.Model(inputs=inp, outputs=model_output)
 
 
@@ -205,15 +203,11 @@ def xception_model(args,):
     model = xception_top(args, pooling=None)
 
     for inp_img in inp_list:
-        out_list.append( model(inp_img))
-
+        out_list.append(model(inp_img))
 
     concat_layer = tf.keras.layers.Concatenate(axis=0)([tf.expand_dims(i, axis=0) for i in out_list])
     concat_layer = tf.transpose(concat_layer, perm=[1,0,2,3,4])
-
     model_output = conv2dlstm_layer_avg_and_reduce(concat_layer, filters=256, size=3)
-
-    print(model_output)
 
     model = tf.keras.Model(inputs=inp, outputs=model_output)
 
