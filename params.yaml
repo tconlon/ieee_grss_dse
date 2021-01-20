@@ -4,7 +4,7 @@ apply_enh_lee_filter: False
 
 INPUT_HEIGHT: 200
 INPUT_WIDTH: 200
-INPUT_CHANNELS: 49
+INPUT_BANDS: 48
 
 OUTPUT_HEIGHT: 4
 OUTPUT_WIDTH: 4
@@ -21,8 +21,13 @@ EPOCHS: 1
 LOAD_EXISTING: False
 LOG: False
 
+CALCULATE_NORM: True
+IMGS_FOR_NORMALIZATION: 98
+
 CHECKPOINT_DIR: '/Volumes/sel_external/ieee_grss_contest/models/training_checkpoints'
 LOG_DIR: '/Volumes/sel_external/ieee_grss_contest/models/logs'
+IMAGE_DIR: '/Volumes/sel_external/ieee_grss_contest/predictions'
+NORMALIZATION_DIR: '/Volumes/sel_external/ieee_grss_contest/models/normalizations'
 
 TRAIN_PATH: '/Volumes/sel_external/ieee_grss_contest/data/tfrecords/train/train_nimgs_98.tfrecords'
 VAL_PATH: '/Volumes/sel_external/ieee_grss_contest/data/tfrecords/val/val_nimgs_49.tfrecords'
