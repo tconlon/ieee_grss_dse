@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 from glob import glob
 import rasterio
-from data_processing.data_processing_utils import get_args
+from ieee_grss_dse.data_processing.data_processing_utils import get_args
 
 
 def channel_flatten_array(array):
@@ -19,7 +19,7 @@ def channel_flatten_array(array):
     return channel_flattened_array
 
 def load_tile_names(args, config='train'):
-    tile_paths = glob(f'{args.data_dir}/raw/{config}/*/')
+    tile_paths = glob(f'{args.data_dir}/{config}/*/')
     tiles = [i.split('/')[-2] for i in tile_paths]
 
     return tiles
@@ -46,7 +46,7 @@ def stack_images_by_date_and_band(image_files, dates, dtype):
 def load_sar_images(args, tile, config='train'):
     dtype = np.float32
 
-    sar_image_files = glob(f'{args.data_dir}/raw/{config}/{tile}/S1A*.tif')
+    sar_image_files = glob(f'{args.data_dir}/{config}/{tile}/S1A*.tif')
     dates = np.unique([i.split('_')[-2] for i in sar_image_files])
     image_stack = stack_images_by_date_and_band(sar_image_files, dates, dtype)
 
@@ -55,7 +55,7 @@ def load_sar_images(args, tile, config='train'):
 def load_s2_images(args, tile, config='train'):
     dtype = np.uint16
 
-    s2_image_files = glob(f'{args.data_dir}/raw/{config}/{tile}/L2A*.tif')
+    s2_image_files = glob(f'{args.data_dir}/{config}/{tile}/L2A*.tif')
 
     dates = np.unique([i.split('_')[-2] for i in s2_image_files])
     image_stack = stack_images_by_date_and_band(s2_image_files, dates, dtype)
@@ -65,7 +65,7 @@ def load_s2_images(args, tile, config='train'):
 def load_l8_images(args, tile, config='train'):
     dtype = np.float32
 
-    l8_image_files = glob(f'{args.data_dir}/raw/{config}/{tile}/LC08*.tif')
+    l8_image_files = glob(f'{args.data_dir}/{config}/{tile}/LC08*.tif')
     dates = np.unique([i.split('_')[-2] for i in l8_image_files])
     image_stack = stack_images_by_date_and_band(l8_image_files, dates, dtype)
 
@@ -74,7 +74,7 @@ def load_l8_images(args, tile, config='train'):
 def load_dnb_images(args, tile, config='train'):
     dtype = np.uint16
 
-    dnb_image_files = glob(f'{args.data_dir}/raw/{config}/{tile}/DNB*.tif')
+    dnb_image_files = glob(f'{args.data_dir}/{config}/{tile}/DNB*.tif')
     dates = np.unique([i.split('_')[-1] for i in dnb_image_files])
     image_stack = stack_images_by_date_and_band(dnb_image_files, dates, dtype)
 
@@ -82,7 +82,7 @@ def load_dnb_images(args, tile, config='train'):
 
 def load_groundtruth(args, tile, config='train'):
 
-    gt_file = f'{args.data_dir}/raw/{config}/{tile}/groundTruth.tif'
+    gt_file = f'{args.data_dir}/{config}/{tile}/groundTruth.tif'
     gt_image = rasterio.open(gt_file, 'r').read()
 
     return gt_image.astype(np.uint8)

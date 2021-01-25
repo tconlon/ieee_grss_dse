@@ -6,13 +6,13 @@ import datetime
 import glob
 from shapely.geometry import shape
 from typing import Sequence
-from PIL import Image
 from tqdm import tqdm
 import tqdm.notebook as tq
-from data_processing.load_raw_images_by_type import *
 import findpeaks
+from ieee_grss_dse.data_processing.load_raw_images_by_type import *
 import matplotlib.pyplot as plt
-from data_processing.data_processing_utils import *
+from ieee_grss_dse.data_processing.data_processing_utils import *
+
 
 def _int64_feature(value):
     """Wrapper for inserting int64 features into Example proto."""
@@ -244,6 +244,55 @@ def process_and_select_dnb_bands(dnb_array):
     return dnb_array
 
 
+def filter_for_cloud_cover_take_furthest_2_images(s2_image):
+    '''
+    Function that filters S2 images based on their Nth percentile
+    If 50% of bands in an image have a value above the threshold, that image is tossed
+
+    N = 95
+
+    b0 = 1330
+    b1 = 1375
+    b2 = 1575
+    b3 = 1970
+    b4 = 2280
+    b5 = 2490
+    b6 = 2715
+    b7 = 2940
+    b8 = 3010
+    b9 = 3990
+    b10 = 3155
+    b11 = 3080
+    '''
+
+    s2_image_reshape = np.array([s2_image[..., 0:12],
+                          s2_image[..., 12:24],
+                          s2_image[..., 24:36],
+                          s2_image[..., 36:48]])
+
+    s2_image_percentiles = np.percentile(s2_image_reshape, q=95, axis=(1,2))
+    band_thresh = [1330, 1375, 1575, 1970, 2280, 2490, 2715, 2940, 3010, 3990, 3155, 3080]
+
+    thresh_count = np.array([np.count_nonzero(s2_image_percentiles[ix] > band_thresh) for ix in range(4)])
+    thresh_by_date = np.argwhere(thresh_count <= 6)
+
+    if len(thresh_by_date) >=2:
+        two_dates_valid = True
+
+        first_valid_image_ix = np.min(thresh_by_date)
+        last_valid_image_ix = np.max(thresh_by_date)
+
+        s2_clean_two_images = np.concatenate((s2_image_reshape[first_valid_image_ix],
+                                       s2_image_reshape[last_valid_image_ix]),
+                                       axis = -1)
+
+    else:
+        two_dates_valid = False
+        s2_clean_two_images = np.array([])
+
+
+
+    return two_dates_valid, s2_clean_two_images
 
 def make_tfrecord_dataset(args, tiles, config='train'):
     '''
@@ -271,23 +320,26 @@ def make_tfrecord_dataset(args, tiles, config='train'):
 
     writer = tf.io.TFRecordWriter(out_file)
 
+    invalid_count = 0
 
     for i, tile in tqdm(enumerate(tiles)):
         print(f'Uploading {tile} to tfrecord')
 
-        sar_array = load_sar_images(args, tile)
+        # sar_array = load_sar_images(args, tile)
         s2_array = load_s2_images(args, tile)
-        l8_array = load_l8_images(args, tile)
+        # l8_array = load_l8_images(args, tile)
         dnb_array = load_dnb_images(args, tile)
 
         gt_array = load_groundtruth(args, tile)
 
         ## ADD CROPPING FUNCTION HERE
 
-        input_stack = np.concatenate((sar_array,
+        input_stack = np.concatenate((
+                                      # sar_array,
                                       s2_array,
-                                      l8_array,
-                                      dnb_array),
+                                      # l8_array,
+                                      dnb_array,
+                                     ),
                                      axis=0).astype(np.float32)
 
         ## Convert to bands last
@@ -298,17 +350,36 @@ def make_tfrecord_dataset(args, tiles, config='train'):
         input_stack = windowed_image_reading(input_stack)
         gt_array = windowed_image_reading(gt_array)
 
+        s2_array = input_stack[...,0:48]
+        dnb_array = input_stack[...,48::]
+
+
         if i == 0:
             print(f'Shape of input stack {input_stack.shape}')
             print(f'Shape of input stack {gt_array.shape}')
 
-        # Write each window to the tfrecord
-        for ix in tqdm(range(input_stack.shape[0]), position=0, leave=True):
-            example = convert_to_example(
-                input_stack[ix], gt_array[ix], input_stack[ix].shape, gt_array[ix].shape
-            )
+        # Filter for cloud cover
 
-            writer.write(example.SerializeToString())
+
+        # Write each window to the tfrecord
+
+        for ix in tqdm(range(input_stack.shape[0]), position=0, leave=True):
+            two_dates_valid, s2_clean_two_images = filter_for_cloud_cover_take_furthest_2_images(s2_array[ix])
+
+            input_stack_clean = np.concatenate((s2_clean_two_images, dnb_array[ix]), axis=-1)
+
+            if two_dates_valid:
+                example = convert_to_example(
+                    input_stack_clean, gt_array[ix], input_stack_clean.shape, gt_array[ix].shape
+                )
+
+                writer.write(example.SerializeToString())
+
+            else:
+                invalid_count += 1
+                print('Image tossed out bc of clouds')
+
+    print(f'Total invalid imagery slices: {invalid_count}')
 
 
 if __name__ == '__main__':
@@ -329,8 +400,9 @@ if __name__ == '__main__':
     }
 
     args = get_args()
-    tiles = load_tile_names(args, config='train')[0:1]
 
-    make_tfrecord_dataset(args, tiles, config='train')
+    config = 'train'
+    tiles = load_tile_names(args, config=config)[0:2]
+    make_tfrecord_dataset(args, tiles, config=config)
 
 
