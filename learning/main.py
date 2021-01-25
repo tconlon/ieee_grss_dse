@@ -1,6 +1,7 @@
 import tensorflow as tf
 import rasterio
 import numpy as np
+
 from ieee_grss_dse.data_processing.data_processing_utils import get_args
 from ieee_grss_dse.data_processing.calculate_normalizations import calculate_normalization, \
     load_normalization_arrays
@@ -10,6 +11,7 @@ from ieee_grss_dse.learning.datagenerator import (type_transform, use_select_inp
                                                   parse_example, list_imagery_by_ts,
                                                   one_hot_encoding_target, apply_band_normalization,
                                                   )
+
 import datetime
 import time
 from IPython import display
@@ -48,6 +50,8 @@ def generate_images(args, model, s2_input, target, epoch, ix):
     ground truth NDVI layer, and predicted NDVI layer. Print a scale bar on the ground
     truth image
     '''
+    print('Generating images for visualization')
+    
     prediction = model(s2_input, training=False)
 
     fig, ax = plt.subplots(ncols=3, nrows=1, figsize=(12, 8))
@@ -56,6 +60,16 @@ def generate_images(args, model, s2_input, target, epoch, ix):
         test_input_for_plotting = s2_input[-1, ..., 4:1:-1]
     elif tf.rank(s2_input) == 5:
         test_input_for_plotting = s2_input[0, -1, ..., 4:1:-1]
+
+    
+
+    test_input_for_plotting = (test_input_for_plotting * args.INPUT_BANDS_STD[4:1:-1] + \
+                              args.INPUT_BANDS_MEAN[4:1:-1])/10000
+
+    print(np.min(test_input_for_plotting, axis = (0,1)))
+    print(np.mean(test_input_for_plotting, axis = (0,1)))
+    print(np.max(test_input_for_plotting, axis = (0,1)))
+    #test_input_for_plotting = np.transpose(test_input_for_plotting, (1,2,0))
 
 
     prediction_sparse =  np.argmax(prediction[0], axis=-1)
@@ -118,8 +132,8 @@ def calculate_val_metrics(args, model, val_ds, epoch):
 
     conf_matrix_tensor = tf.zeros(shape=[4,4], dtype=tf.dtypes.int32)
 
-    for ix, (s2_image, dnb_image, target_image) in enumerate(val_ds.take(5)):
-        prediction = model(s2_image, training=False)
+    for ix, (input_image, dnb_image, target_image) in val_ds.enumerate():
+        prediction = model(input_image, training=False)
 
         prediction_sparse = np.argmax(prediction[0], axis=-1)
         target_sparse = np.argmax(target_image[0], axis=-1)
@@ -129,6 +143,12 @@ def calculate_val_metrics(args, model, val_ds, epoch):
                                                num_classes=4)
 
         conf_matrix_tensor += conf_matrix
+
+        if ix < 16:
+            generate_images(args, model, input_image, target_image, epoch, ix)
+
+    print('Validation dataset confusion matrix')
+    print(conf_matrix_tensor)
 
 
     precision = np.zeros(4)
@@ -146,21 +166,25 @@ def calculate_val_metrics(args, model, val_ds, epoch):
         if np.sum([precision[ix], recall[ix]]) > 0:
             f1[ix]        = 2 * precision[ix] * recall[ix] / (precision[ix] + recall[ix])
 
-    total_acc = np.diag(conf_matrix_tensor) / np.sum(conf_matrix_tensor)
+    total_acc = np.sum(np.diag(conf_matrix_tensor)) / np.sum(conf_matrix_tensor)
 
-    if args.log:
+    print(f'Epoch {epoch}, validation set total accuracy: {total_acc}')
+    
+    if args.LOG:
+        
         with summary_writer.as_default():
-            tf.summary.scalar("total_acc", total_acc, step=epoch)
+            tf.summary.scalar("val_total_acc", total_acc, step=epoch)
             for ix in range(4):
-                tf.summary.scalar(f"precision_class_{ix+1}", precision[ix], step=epoch)
-                tf.summary.scalar(f"recall_class_{ix+1}", recall[ix], step=epoch)
-                tf.summary.scalar(f"f1_class_{ix+1}", f1[ix], step=epoch)
+                tf.summary.scalar(f"val_precision_class_{ix+1}", precision[ix], step=epoch)
+                tf.summary.scalar(f"val_recall_class_{ix+1}", recall[ix], step=epoch)
+                tf.summary.scalar(f"val_f1_class_{ix+1}", f1[ix], step=epoch)
 
     print(f'Confusion matrix:\n{conf_matrix_tensor}')
 
 
 @tf.function
-def train_step(args, input_image, target, model, step):
+
+def train_step(args, input_image, target, model, epoch):
     '''
     Function that applies a training step for both generator and discriminator
     '''
@@ -179,15 +203,18 @@ def train_step(args, input_image, target, model, step):
         optimizer.apply_gradients(zip(model_gradients, model.trainable_variables))
 
         # Write out loss and correlation terms
-        if args.log:
+        if args.LOG:
+            
             with summary_writer.as_default():
-                tf.summary.scalar("total_loss", model_loss, step=step)
+                tf.summary.scalar("train_total_loss", model_loss, step=epoch)
 
+    
+        return model_loss
 
 def fit(args, train_ds, val_ds):
     '''
     Fit function. This function generates a set of images for visualization every epoch,
-    and applies the training function.
+    and applies the training function
 
     Calculating the total length of the training set is optional: It takes time to calculate
     once, but after calculating once, I recommend assigning the length to pbar.
@@ -206,17 +233,21 @@ def fit(args, train_ds, val_ds):
 
         # Train and track progress with pbar
         total_steps = np.ceil(total_training_imgs/args.BATCH_SIZE)
-        pbar = tqdm(total=total_steps, ncols=60)
+        pbar = tqdm(total=total_steps, ncols=100)
 
-        calculate_val_metrics(args, model, val_ds, epoch)
+        #print('Calculating validation ds metrics')
+        #calculate_val_metrics(args, model, val_ds, epoch)
 
         for n, (s2_batch, dnb_batch, target_batch) in train_ds.enumerate():
             pbar.update(1)
             step = epoch + n/total_steps
-            train_step(args, s2_batch, target_batch, model, step)
 
+            model_loss = train_step(args, s2_batch, target_batch, model, epoch)
+
+            pbar.set_description(f'Training loss: {model_loss}')
 
         print('Calculating validation ds metrics')
+        calculate_val_metrics(args, model, val_ds, epoch)
 
         print("Time taken for epoch {} is {} sec\n".format(epoch,
                                                            time.time() - start))
@@ -311,14 +342,18 @@ if __name__ == '__main__':
         norm_dir = dir_time
         calculate_normalization(args, dir_time)
     else:
+        print('Loading existing normalization')
         norm_dir = '20210125-124759'
 
     # Load normalization
     load_normalization_arrays(args, norm_dir)
 
+    tf.config.optimizer.set_experimental_options({'layout_optimizer': False})
+    tf.Graph().finalize()
+
     # Create a directory to store training results based on new model start time
     if args.LOG:
-        summary_writer = tf.summary.create_file_writer(f'{args.LOG_DIR}/fit/{dir_time}')
+        summary_writer = tf.summary.create_file_writer(f'{args.LOG_DIR}/{dir_time}')
 
     # Define the functions that get mapped onto the training tf.data.Dataset
     # These are imported from learning/datagenerator.py

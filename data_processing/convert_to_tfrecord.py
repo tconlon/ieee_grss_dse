@@ -8,9 +8,11 @@ from shapely.geometry import shape
 from typing import Sequence
 from tqdm import tqdm
 import tqdm.notebook as tq
+import findpeaks
 from ieee_grss_dse.data_processing.load_raw_images_by_type import *
 import matplotlib.pyplot as plt
 from ieee_grss_dse.data_processing.data_processing_utils import *
+
 
 def _int64_feature(value):
     """Wrapper for inserting int64 features into Example proto."""
@@ -319,6 +321,7 @@ def make_tfrecord_dataset(args, tiles, config='train'):
     writer = tf.io.TFRecordWriter(out_file)
 
     invalid_count = 0
+
     for i, tile in tqdm(enumerate(tiles)):
         print(f'Uploading {tile} to tfrecord')
 
@@ -398,7 +401,8 @@ if __name__ == '__main__':
 
     args = get_args()
 
-    tiles = load_tile_names(args, config='train')[0:2]
-    make_tfrecord_dataset(args, tiles, config='train')
+    config = 'train'
+    tiles = load_tile_names(args, config=config)[0:2]
+    make_tfrecord_dataset(args, tiles, config=config)
 
 
