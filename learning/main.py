@@ -4,6 +4,7 @@ import numpy as np
 from ieee_grss_dse.data_processing.data_processing_utils import get_args
 from ieee_grss_dse.data_processing.calculate_normalizations import calculate_normalization, \
     load_normalization_arrays
+from ieee_grss_dse.data_processing.finding_cloudy_values import calculate_band_pdfs
 from ieee_grss_dse.learning.model import s2_convlstm_network, xception_model
 from ieee_grss_dse.learning.datagenerator import (type_transform, use_select_input_bands,
                                                   parse_example, list_imagery_by_ts,
@@ -112,13 +113,13 @@ def generate_images(args, model, s2_input, target, epoch, ix):
 def calculate_val_metrics(args, model, val_ds, epoch):
 
     # Generate images for visualization
-    # for ix, (s2_input, target) in enumerate(val_ds.take(1)):
-    #     generate_images(args, model, s2_input, target, epoch, ix)
+    for ix, (s2_image, dnb_image, target) in enumerate(val_ds.take(1)):
+        generate_images(args, model, s2_image, target, epoch, ix)
 
     conf_matrix_tensor = tf.zeros(shape=[4,4], dtype=tf.dtypes.int32)
 
-    for ix, (input_image, target_image) in enumerate(val_ds.take(5)):
-        prediction = model(input_image, training=False)
+    for ix, (s2_image, dnb_image, target_image) in enumerate(val_ds.take(5)):
+        prediction = model(s2_image, training=False)
 
         prediction_sparse = np.argmax(prediction[0], axis=-1)
         target_sparse = np.argmax(target_image[0], axis=-1)
@@ -155,9 +156,11 @@ def calculate_val_metrics(args, model, val_ds, epoch):
                 tf.summary.scalar(f"recall_class_{ix+1}", recall[ix], step=epoch)
                 tf.summary.scalar(f"f1_class_{ix+1}", f1[ix], step=epoch)
 
+    print(f'Confusion matrix:\n{conf_matrix_tensor}')
+
 
 @tf.function
-def train_step(log, input_image, target, model, step):
+def train_step(args, input_image, target, model, step):
     '''
     Function that applies a training step for both generator and discriminator
     '''
@@ -207,10 +210,10 @@ def fit(args, train_ds, val_ds):
 
         calculate_val_metrics(args, model, val_ds, epoch)
 
-        for n, (input_batch, target_batch) in train_ds.enumerate():
+        for n, (s2_batch, dnb_batch, target_batch) in train_ds.enumerate():
             pbar.update(1)
             step = epoch + n/total_steps
-            train_step(args, input_batch, target_batch, model, step)
+            train_step(args, s2_batch, target_batch, model, step)
 
 
         print('Calculating validation ds metrics')
@@ -222,18 +225,18 @@ def fit(args, train_ds, val_ds):
 def prepare_datasets(args):
     train_funcs = [
         type_transform,
-        lambda inp, tar: apply_band_normalization(args, inp, tar),
+        # lambda inp, tar: apply_band_normalization(args, inp, tar),
         one_hot_encoding_target,
-        list_imagery_by_ts,
+        list_imagery_by_ts, # This should go last
 
     ]
 
     # Similarly, define the functions that should be mapped onto the validation tf.data.Dataset
     val_funcs = [
         type_transform,
-        lambda inp, tar: apply_band_normalization(args, inp, tar),
+        # lambda inp, tar: apply_band_normalization(args, inp, tar),
         one_hot_encoding_target,
-        list_imagery_by_ts,
+        list_imagery_by_ts, # This should go last
     ]
 
     ## NEED TO DEFINE NORMALIZATION FUNCTIONS HERE TOO
@@ -308,13 +311,10 @@ if __name__ == '__main__':
         norm_dir = dir_time
         calculate_normalization(args, dir_time)
     else:
-        norm_dir = '20210120-105004'
+        norm_dir = '20210125-124759'
 
     # Load normalization
     load_normalization_arrays(args, norm_dir)
-
-
-
 
     # Create a directory to store training results based on new model start time
     if args.LOG:

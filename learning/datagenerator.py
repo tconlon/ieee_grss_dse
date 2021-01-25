@@ -79,13 +79,16 @@ def type_transform(input_image, target_image):
 
 def list_imagery_by_ts(input_image, target_image):
 
-    imagery_list_by_ts = [input_image[..., 0:12],
+    s2_imagery_list_by_ts = [
+                          input_image[..., 0:12],
                           input_image[..., 12:24],
-                          input_image[..., 24:36],
-                          input_image[..., 36:48]]
+                          # input_image[..., 24:36],
+                          # input_image[..., 36:48]
+                        ]
 
+    dnb_imagery = input_image[..., 24::]
 
-    return imagery_list_by_ts, target_image
+    return s2_imagery_list_by_ts, dnb_imagery, target_image
 
 
 def one_hot_encoding_target(input_image, target_image):

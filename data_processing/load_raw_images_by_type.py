@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 from glob import glob
 import rasterio
-from data_processing.data_processing_utils import get_args
+from ieee_grss_dse.data_processing.data_processing_utils import get_args
 
 
 def channel_flatten_array(array):
