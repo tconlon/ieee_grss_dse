@@ -13,16 +13,16 @@ OUTPUT_CHANNELS: 1
 n_s2_timesteps: 4
 INPUT_S2_CHANNELS: 12
 
-BUFFER_SIZE: 1
-BATCH_SIZE: 1
+BUFFER_SIZE: 16
+BATCH_SIZE: 4
 
 EPOCHS: 10
 
 LOAD_EXISTING: False
-LOG: False
+LOG: True
 
-CALCULATE_NORM: True
-IMGS_FOR_NORMALIZATION: 98
+CALCULATE_NORM: False
+IMGS_FOR_NORMALIZATION: 980
 
 CHECKPOINT_DIR: '../../models/training_checkpoints'
 LOG_DIR: '../../models/logs'
@@ -30,7 +30,7 @@ IMAGE_DIR: '../../predictions'
 NORMALIZATION_DIR: '../../models/normalizations'
 
 
-TRAIN_PATH: '../../data/tfrecords/train/train_nimgs_98.tfrecords'
-VAL_PATH: '../../data/tfrecords/val/val_nimgs_49.tfrecords'
+TRAIN_PATH: '../../data/tfrecords/train/train_nimgs_980.tfrecords'
+VAL_PATH: '../../data/tfrecords/val/val_nimgs_392.tfrecords'
 
 TRAIN: True

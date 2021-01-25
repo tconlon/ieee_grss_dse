@@ -331,8 +331,9 @@ if __name__ == '__main__':
     }
 
     args = get_args()
-    tiles = load_tile_names(args, config='val')[0:1]
+    config = 'val'
+    tiles = load_tile_names(args, config=config)[0:8]
 
-    make_tfrecord_dataset(args, tiles, config='val')
+    make_tfrecord_dataset(args, tiles, config=config)
 
 
